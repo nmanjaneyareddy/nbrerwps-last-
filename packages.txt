@@ -1,0 +1,11 @@
+chromium-chromedriver
+chromium-browser
+libglib2.0-0
+libnss3
+libgconf-2-4
+libxss1
+libasound2
+libxtst6
+libatk1.0-0
+libatk-bridge2.0-0
+libgtk-3-0
