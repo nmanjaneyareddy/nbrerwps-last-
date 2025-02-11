@@ -8,6 +8,7 @@ import pandas as pd
 import time
 import os
 from io import BytesIO
+import requests
 
 def scrape_nber():
     # Set up Selenium with headless option
@@ -15,9 +16,17 @@ def scrape_nber():
     chrome_options.add_argument("--headless")
     chrome_options.add_argument("--no-sandbox")
     chrome_options.add_argument("--disable-dev-shm-usage")
+    chrome_options.add_argument("--disable-gpu")
+    chrome_options.add_argument("--window-size=1920,1080")
+    chrome_options.add_argument("--remote-debugging-port=9222")
+    chrome_options.binary_location = '/usr/bin/chromium-browser'  # Explicit path for Streamlit Cloud
 
-    # Set up the WebDriver
-    driver = webdriver.Chrome(service=Service(ChromeDriverManager().install()), options=chrome_options)
+    try:
+        # Set up the WebDriver
+        driver = webdriver.Chrome(service=Service(ChromeDriverManager().install()), options=chrome_options)
+    except Exception as e:
+        st.error(f"Error initializing WebDriver: {e}")
+        return None
 
     url = 'https://www.nber.org/papers?page=1&perPage=50&sortBy=public_date'
     driver.get(url)
@@ -25,7 +34,12 @@ def scrape_nber():
     # Allow time for the page to load
     time.sleep(5)
 
-    papers = driver.find_elements(By.CLASS_NAME, 'teaser')
+    try:
+        papers = driver.find_elements(By.CLASS_NAME, 'teaser')
+    except Exception as e:
+        st.error(f"Error finding elements: {e}")
+        driver.quit()
+        return None
 
     data = []
 
@@ -50,7 +64,7 @@ def scrape_nber():
                 'Link': link
             })
         except Exception as e:
-            st.write(f"Error processing paper: {e}")
+            st.warning(f"Error processing paper: {e}")
             continue
 
     driver.quit()
@@ -60,7 +74,7 @@ def scrape_nber():
 
 def convert_df_to_excel(df):
     output = BytesIO()
-    with pd.ExcelWriter(output, engine='xlsxwriter') as writer:
+    with pd.ExcelWriter(output, engine='openpyxl') as writer:
         df.to_excel(writer, index=False, sheet_name='NBER Data')
     output.seek(0)
     return output
