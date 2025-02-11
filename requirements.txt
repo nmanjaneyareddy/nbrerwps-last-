@@ -1,5 +1,6 @@
 streamlit
-beautifulsoup4
-requests
 pandas
+selenium
+webdriver-manager
 xlsxwriter
+requests
