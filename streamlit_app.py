@@ -18,9 +18,16 @@ def scrape_nber():
     
     # Debugging output
     st.write("Page fetched successfully.")
+    st.code(soup.prettify()[:1000], language='html')  # Display the first 1000 characters of the HTML for inspection
 
     # Adjusted selector based on possible website structure changes
     results = soup.find_all('div', class_='digest-card')
+    
+    # Fallback selector if no results are found
+    if not results:
+        st.warning("Primary selector failed. Trying alternative selector...")
+        results = soup.find_all('article')  # Assuming 'article' might be a relevant tag
+
     if not results:
         st.error("No data found. The structure of the website may have changed.")
         return None
@@ -28,14 +35,14 @@ def scrape_nber():
     data = []
     
     for job_elem in results:
-        title_elem = job_elem.find('h3', class_='digest-card__title')
-        year_elem = job_elem.find('span', class_="digest-card__label")
-        wpno_elem = job_elem.find('a', class_='paper-card__paper_number')
-        auth_elem = job_elem.find('p', class_='digest-card__items')
+        title_elem = job_elem.find('h3') or job_elem.find('h2')  # Trying both h3 and h2
+        year_elem = job_elem.find('span', class_="digest-card__label") or job_elem.find('time')
+        wpno_elem = job_elem.find('a', class_='paper-card__paper_number') or job_elem.find('a', href=True)
+        auth_elem = job_elem.find('p', class_='digest-card__items') or job_elem.find('div', class_='authors')
 
         st.write(f"Processing: {title_elem}, {year_elem}, {wpno_elem}, {auth_elem}")
 
-        if not all([title_elem, year_elem, wpno_elem, auth_elem]):
+        if not all([title_elem, wpno_elem]):  # Title and WP number are essential
             continue
 
         title_text = title_elem.text.strip()
