@@ -54,12 +54,10 @@ def scrape_nber():
     # Safely split 'Title' into 'Title1' and 'Subtitle'
     def safe_split(row):
         parts = row['Title'].split(':', maxsplit=1)
-        return parts if len(parts) == 2 else [parts[0], '']
+        return pd.Series(parts if len(parts) == 2 else [parts[0], ''], index=['Title1', 'Subtitle'])
     
-    split_titles = df.apply(safe_split, axis=1, result_type='expand')
-    df['Title1'] = split_titles[0]
-    df['Subtitle'] = split_titles[1]
-    
+    split_titles = df.apply(safe_split, axis=1)
+    df = pd.concat([df, split_titles], axis=1)
     df.drop('Title', axis=1, inplace=True)
     return df
 
