@@ -9,13 +9,13 @@ def download_pdfs(start, end):
 
     with ZipFile(zip_buffer, 'w') as zip_file:
         for i in range(start, end + 1):
-            url = f"https://www.nber.org/system/files/working_papers/w{i}/w{i}.pdf"
+            url = f"https://www.nber.org/papers/w{i}.pdf"
             response = requests.get(url)
 
             if response.status_code == 200:
                 zip_file.writestr(f"w{i}.pdf", response.content)
             else:
-                st.write(f"Failed to download: {url}")
+                st.write(f"Failed to download: {url} with status code {response.status_code}")
 
     zip_buffer.seek(0)
     st.download_button(
