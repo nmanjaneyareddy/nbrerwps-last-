@@ -2,6 +2,7 @@ import streamlit as st
 from selenium import webdriver
 from selenium.webdriver.chrome.service import Service
 from selenium.webdriver.chrome.options import Options
+from selenium.webdriver.common.by import By
 from webdriver_manager.chrome import ChromeDriverManager
 from webdriver_manager.core.os_manager import ChromeType
 import pandas as pd
@@ -9,7 +10,6 @@ import time
 from io import BytesIO
 import requests
 from zipfile import ZipFile
-
 
 @st.cache_resource
 def get_driver():
@@ -19,23 +19,30 @@ def get_driver():
     options.add_argument("--no-sandbox")
     options.add_argument("--disable-dev-shm-usage")
     options.add_argument("--window-size=1920,1080")
+    options.add_argument("--remote-debugging-port=9222")  # For better debugging
 
-    return webdriver.Chrome(
-        service=Service(ChromeDriverManager(chrome_type=ChromeType.CHROMIUM).install()),
-        options=options,
-    )
+    try:
+        driver = webdriver.Chrome(
+            service=Service(ChromeDriverManager(chrome_type=ChromeType.CHROMIUM).install()),
+            options=options,
+        )
+        return driver
+    except Exception as e:
+        st.error(f"Error initializing WebDriver: {e}")
+        return None
 
 def scrape_nber():
     driver = get_driver()
+    if driver is None:
+        return None
+
     url = 'https://www.nber.org/papers?page=1&perPage=50&sortBy=public_date'
-    driver.get(url)
-
-    time.sleep(5)
-
     try:
+        driver.get(url)
+        time.sleep(5)
         papers = driver.find_elements(By.CLASS_NAME, 'teaser')
     except Exception as e:
-        st.error(f"Error finding elements: {e}")
+        st.error(f"Error accessing NBER site or finding elements: {e}")
         driver.quit()
         return None
 
