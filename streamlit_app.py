@@ -4,16 +4,6 @@ from bs4 import BeautifulSoup
 import pandas as pd
 from io import BytesIO
 import os
-import subprocess
-import sys
-
-# Ensure required packages are installed
-def install_packages():
-    packages = ["beautifulsoup4", "requests", "pandas", "xlsxwriter"]
-    for package in packages:
-        subprocess.check_call([sys.executable, "-m", "pip", "install", package])
-
-install_packages()
 
 def scrape_nber():
     url = 'https://www.nber.org/papers?page=1&perPage=50&sortBy=public_date#listing-77041'
@@ -108,8 +98,16 @@ if st.button("Scrape NBER Data"):
         st.download_button(label="Download Excel File", data=excel_data, file_name="nber_data.xlsx", mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
 
 st.subheader("Download NBER PDFs")
-start_range = st.number_input("Enter start range", min_value=1, value=33405)
-end_range = st.number_input("Enter end range", min_value=start_range, value=33440)
+start_range = st.text_input("Enter start range (e.g., 33405)", value="33405")
+end_range = st.text_input("Enter end range (e.g., 33440)", value="33440")
 
 if st.button("Download PDFs"):
-    download_pdfs(start_range, end_range)
+    try:
+        start_range = int(start_range)
+        end_range = int(end_range)
+        if start_range > 0 and end_range >= start_range:
+            download_pdfs(start_range, end_range)
+        else:
+            st.error("Please enter valid positive numbers with the end range greater than or equal to the start range.")
+    except ValueError:
+        st.error("Please enter valid numerical values.")
