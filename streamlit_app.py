@@ -56,9 +56,11 @@ def scrape_nber():
         parts = row['Title'].split(':', maxsplit=1)
         return pd.Series(parts if len(parts) == 2 else [parts[0], ''], index=['Title1', 'Subtitle'])
     
-    split_titles = df.apply(safe_split, axis=1)
-    df = pd.concat([df, split_titles], axis=1)
-    df.drop('Title', axis=1, inplace=True)
+    if 'Title' in df.columns:
+        split_titles = df.apply(safe_split, axis=1)
+        df = pd.concat([df, split_titles], axis=1)
+        df.drop('Title', axis=1, inplace=True)
+    
     return df
 
 def convert_df_to_excel(df):
