@@ -1,79 +1,61 @@
 import streamlit as st
-import requests
-from bs4 import BeautifulSoup
+from selenium import webdriver
+from selenium.webdriver.common.by import By
+from selenium.webdriver.chrome.service import Service
+from selenium.webdriver.chrome.options import Options
+from webdriver_manager.chrome import ChromeDriverManager
 import pandas as pd
-from io import BytesIO
+import time
 import os
+from io import BytesIO
 
 def scrape_nber():
-    url = 'https://www.nber.org/papers?page=1&perPage=50&sortBy=public_date#listing-77041'
-    headers = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64)"}
-    response = requests.get(url, headers=headers)
-    
-    if response.status_code != 200:
-        st.error("Failed to retrieve data. Check the URL or try again later.")
-        return None
-    
-    soup = BeautifulSoup(response.text, 'html.parser')
-    
-    # Debugging output
-    st.write("Page fetched successfully.")
-    st.code(soup.prettify()[:1000], language='html')  # Display the first 1000 characters of the HTML for inspection
+    # Set up Selenium with headless option
+    chrome_options = Options()
+    chrome_options.add_argument("--headless")
+    chrome_options.add_argument("--no-sandbox")
+    chrome_options.add_argument("--disable-dev-shm-usage")
 
-    # Adjusted selector based on possible website structure changes
-    results = soup.find_all('div', class_='digest-card')
-    
-    # Fallback selector if no results are found
-    if not results:
-        st.warning("Primary selector failed. Trying alternative selector...")
-        results = soup.find_all('article')  # Assuming 'article' might be a relevant tag
+    # Set up the WebDriver
+    driver = webdriver.Chrome(service=Service(ChromeDriverManager().install()), options=chrome_options)
 
-    if not results:
-        st.error("No data found. The structure of the website may have changed.")
-        return None
-    
+    url = 'https://www.nber.org/papers?page=1&perPage=50&sortBy=public_date'
+    driver.get(url)
+
+    # Allow time for the page to load
+    time.sleep(5)
+
+    papers = driver.find_elements(By.CLASS_NAME, 'teaser')
+
     data = []
-    
-    for job_elem in results:
-        title_elem = job_elem.find('h3') or job_elem.find('h2')  # Trying both h3 and h2
-        year_elem = job_elem.find('span', class_="digest-card__label") or job_elem.find('time')
-        wpno_elem = job_elem.find('a', class_='paper-card__paper_number') or job_elem.find('a', href=True)
-        auth_elem = job_elem.find('p', class_='digest-card__items') or job_elem.find('div', class_='authors')
 
-        st.write(f"Processing: {title_elem}, {year_elem}, {wpno_elem}, {auth_elem}")
+    for paper in papers:
+        try:
+            title_elem = paper.find_element(By.CLASS_NAME, 'title')
+            title_text = title_elem.text.strip()
 
-        if not all([title_elem, wpno_elem]):  # Title and WP number are essential
+            author_elem = paper.find_element(By.CLASS_NAME, 'authors')
+            authors = author_elem.text.strip()
+
+            date_elem = paper.find_element(By.CLASS_NAME, 'date')
+            date_text = date_elem.text.strip()
+
+            link_elem = paper.find_element(By.TAG_NAME, 'a')
+            link = link_elem.get_attribute('href')
+
+            data.append({
+                'Title': title_text,
+                'Authors': authors,
+                'Date': date_text,
+                'Link': link
+            })
+        except Exception as e:
+            st.write(f"Error processing paper: {e}")
             continue
 
-        title_text = title_elem.text.strip()
-        year = year_elem.text.strip() if year_elem else ''
-        WpNo = wpno_elem.text.strip()
-        auth1 = auth_elem.text.strip().replace('Author(s) - ', '') if auth_elem else ''
-
-        data.append({
-            'Source': 'National Bureau of Economic Research',
-            'Title': title_text,
-            'Year': year,
-            'WP_NO': WpNo,
-            'Place': 'Cambridge',
-            'Publisher': 'NBER',
-            'Series': 'NBER Working Papers ;',
-            'wpno': 'NBERWP ' + WpNo,
-            'Author': auth1
-        })
+    driver.quit()
 
     df = pd.DataFrame(data)
-
-    # Safely split 'Title' into 'Title1' and 'Subtitle'
-    def safe_split(row):
-        parts = row['Title'].split(':', maxsplit=1)
-        return pd.Series(parts if len(parts) == 2 else [parts[0], ''], index=['Title1', 'Subtitle'])
-
-    if 'Title' in df.columns:
-        split_titles = df.apply(safe_split, axis=1)
-        df = pd.concat([df, split_titles], axis=1)
-        df.drop('Title', axis=1, inplace=True)
-
     return df
 
 def convert_df_to_excel(df):
