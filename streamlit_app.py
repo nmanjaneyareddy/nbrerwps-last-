@@ -76,12 +76,10 @@ if st.button("Download PDFs and Generate Report"):
 # Disclaimer
 st.markdown(
     """
-    **Disclaimer:** This web application is an independent tool designed to assist users in accessing 
+    **Disclaimer:** This application is an independent tool designed to assist users in accessing 
     and downloading publicly available PDF files from the National Bureau of Economic Research (NBER) portal. 
-    We do not host, store, or modify any content, nor do we claim ownership of any materials accessed through this platform. 
-    Users are solely responsible for ensuring compliance with NBER’s terms of use, copyright policies, and applicable legal regulations. 
-    This tool is provided "as is" without any warranties, express or implied, and we assume no liability for any misuse, unauthorized access, 
-    or legal consequences resulting from its use.
+    It does not host, store, or modify any content, nor does it claim ownership of any materials accessed through this platform. 
+    Users are solely responsible for ensuring compliance with NBER’s terms of use, copyright policies, and applicable legal regulations.
     """,
     unsafe_allow_html=True,
 )
