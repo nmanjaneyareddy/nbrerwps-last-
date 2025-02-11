@@ -10,6 +10,8 @@ import time
 from io import BytesIO
 import requests
 from zipfile import ZipFile
+import shutil
+import os
 
 @st.cache_resource
 def get_driver():
@@ -19,7 +21,7 @@ def get_driver():
     options.add_argument("--no-sandbox")
     options.add_argument("--disable-dev-shm-usage")
     options.add_argument("--window-size=1920,1080")
-    options.add_argument("--remote-debugging-port=9222")  # For better debugging
+    options.binary_location = shutil.which("chromium-browser") or "/usr/bin/chromium-browser"
 
     try:
         driver = webdriver.Chrome(
