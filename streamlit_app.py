@@ -20,7 +20,7 @@ def scrape_nber():
     st.write("Page fetched successfully.")
 
     # Adjusted selector based on possible website structure changes
-    results = soup.find_all('div', class_='card')
+    results = soup.find_all('div', class_='digest-card')
     if not results:
         st.error("No data found. The structure of the website may have changed.")
         return None
@@ -28,10 +28,10 @@ def scrape_nber():
     data = []
     
     for job_elem in results:
-        title_elem = job_elem.find('h3')
-        year_elem = job_elem.find('span', class_="year")
-        wpno_elem = job_elem.find('a', href=True)
-        auth_elem = job_elem.find('p', class_='authors')
+        title_elem = job_elem.find('h3', class_='digest-card__title')
+        year_elem = job_elem.find('span', class_="digest-card__label")
+        wpno_elem = job_elem.find('a', class_='paper-card__paper_number')
+        auth_elem = job_elem.find('p', class_='digest-card__items')
 
         st.write(f"Processing: {title_elem}, {year_elem}, {wpno_elem}, {auth_elem}")
 
