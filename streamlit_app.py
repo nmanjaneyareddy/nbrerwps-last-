@@ -11,18 +11,6 @@ from io import BytesIO
 import requests
 
 
-def get_downloads_path():
-    # Cross-platform Downloads folder detection
-    try:
-        downloads = os.path.join(os.path.expanduser("~"), "Downloads")
-        if not os.path.exists(downloads):
-            raise FileNotFoundError("Downloads path not found.")
-        return downloads
-    except Exception as e:
-        st.warning(f"Error locating Downloads path: {e}")
-        return os.getcwd()  # Fallback to current directory
-
-
 def scrape_nber():
     # Set up Selenium with headless option
     chrome_options = Options()
@@ -95,23 +83,22 @@ def convert_df_to_excel(df):
 
 
 def download_pdfs(start, end):
-    # Save PDFs to the user's Downloads folder (or fallback directory)
-    downloads_path = os.path.join(get_downloads_path(), "NBER_Papers")
-    os.makedirs(downloads_path, exist_ok=True)
-
-    st.write(f"Starting to download PDFs to {downloads_path}...")
+    st.write(f"Starting to download PDFs...")
     for i in range(start, end + 1):
         url = f"https://www.nber.org/system/files/working_papers/w{i}/w{i}.pdf"
         response = requests.get(url)
 
         if response.status_code == 200:
-            filename = os.path.join(downloads_path, url.split('/')[-1])
-            with open(filename, 'wb') as out_file:
-                out_file.write(response.content)
-            st.write(f"Downloaded: {filename}")
+            file_data = BytesIO(response.content)
+            st.download_button(
+                label=f"Download w{i}.pdf",
+                data=file_data,
+                file_name=f"w{i}.pdf",
+                mime="application/pdf"
+            )
         else:
             st.write(f"Failed to download: {url}")
-    st.success(f"Download complete! Files saved to: {downloads_path}")
+    st.success("Download buttons generated successfully!")
 
 
 st.title("NBER Paper Scraper and Downloader")
