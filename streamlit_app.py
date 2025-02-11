@@ -5,6 +5,7 @@ from zipfile import ZipFile
 from PyPDF2 import PdfReader
 import pandas as pd
 
+
 def download_pdfs_and_generate_report(start, end):
     st.write("Starting to download PDFs...")
     zip_buffer = BytesIO()
@@ -72,3 +73,15 @@ if st.button("Download PDFs and Generate Report"):
             st.error("Please enter valid positive numbers with the end range greater than or equal to the start range.")
     except ValueError:
         st.error("Please enter valid numerical values.")
+# Disclaimer
+st.markdown(
+    """
+    **Disclaimer:** This web application is an independent tool designed to assist users in accessing 
+    and downloading publicly available PDF files from the National Bureau of Economic Research (NBER) portal. 
+    We do not host, store, or modify any content, nor do we claim ownership of any materials accessed through this platform. 
+    Users are solely responsible for ensuring compliance with NBER’s terms of use, copyright policies, and applicable legal regulations. 
+    This tool is provided "as is" without any warranties, express or implied, and we assume no liability for any misuse, unauthorized access, 
+    or legal consequences resulting from its use.
+    """,
+    unsafe_allow_html=True,
+)
