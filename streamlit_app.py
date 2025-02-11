@@ -4,6 +4,16 @@ from bs4 import BeautifulSoup
 import pandas as pd
 from io import BytesIO
 import os
+import subprocess
+import sys
+
+# Ensure required packages are installed
+def install_packages():
+    packages = ["beautifulsoup4", "requests", "pandas", "xlsxwriter"]
+    for package in packages:
+        subprocess.check_call([sys.executable, "-m", "pip", "install", package])
+
+install_packages()
 
 def scrape_nber():
     url = 'https://www.nber.org/papers?page=1&perPage=50&sortBy=public_date#listing-77041'
