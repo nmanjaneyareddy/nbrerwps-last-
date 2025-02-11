@@ -28,8 +28,16 @@ def download_pdfs(start, end):
     st.success("All PDFs have been downloaded successfully!")
 
 st.title("Download NBER PDFs")
-start_range = st.number_input("Enter start range", min_value=1, value=32500)
-end_range = st.number_input("Enter end range", min_value=start_range, value=32510)
+start_range = st.text_input("Enter start range (e.g., 32500)")
+end_range = st.text_input("Enter end range (e.g., 32510)")
 
 if st.button("Download PDFs"):
-    download_pdfs(start_range, end_range)
+    try:
+        start_range = int(start_range)
+        end_range = int(end_range)
+        if start_range > 0 and end_range >= start_range:
+            download_pdfs(start_range, end_range)
+        else:
+            st.error("Please enter valid positive numbers with the end range greater than or equal to the start range.")
+    except ValueError:
+        st.error("Please enter valid numerical values.")
