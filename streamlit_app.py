@@ -21,13 +21,20 @@ def get_driver():
     options.add_argument("--no-sandbox")
     options.add_argument("--disable-dev-shm-usage")
     options.add_argument("--window-size=1920,1080")
-    options.binary_location = shutil.which("chromium-browser") or "/usr/bin/chromium-browser"
+
+    # Debugging Information
+    st.write("Checking Chromium binary location...")
+    binary_location = shutil.which("chromium-browser") or "/usr/bin/chromium-browser"
+    st.write(f"Chromium binary located at: {binary_location}")
+    options.binary_location = binary_location
 
     try:
+        st.write("Initializing ChromeDriver...")
         driver = webdriver.Chrome(
             service=Service(ChromeDriverManager(chrome_type=ChromeType.CHROMIUM).install()),
             options=options,
         )
+        st.write("ChromeDriver initialized successfully.")
         return driver
     except Exception as e:
         st.error(f"Error initializing WebDriver: {e}")
