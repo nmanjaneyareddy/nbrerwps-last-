@@ -9,13 +9,13 @@ def download_pdfs(start, end):
 
     with ZipFile(zip_buffer, 'w') as zip_file:
         for i in range(start, end + 1):
-            url = f"https://www.nber.org/papers/w{i}.pdf"
+            url = f"https://www.nber.org/system/files/working_papers/w{i}/w{i}.pdf"
             response = requests.get(url)
 
             if response.status_code == 200:
                 zip_file.writestr(f"w{i}.pdf", response.content)
             else:
-                st.write(f"Failed to download: {url} with status code {response.status_code}")
+                st.write(f"Failed to download: {url}")
 
     zip_buffer.seek(0)
     st.download_button(
@@ -27,9 +27,11 @@ def download_pdfs(start, end):
 
     st.success("All PDFs have been downloaded successfully!")
 
-st.title("Download NBER PDFs")
-start_range = st.text_input("Enter start range (e.g., 32500)")
-end_range = st.text_input("Enter end range (e.g., 32510)")
+st.title("NBER Paper Downloader")
+
+st.subheader("Download NBER PDFs")
+start_range = st.text_input("Enter start range (e.g., 33405)", value="33405")
+end_range = st.text_input("Enter end range (e.g., 33440)", value="33440")
 
 if st.button("Download PDFs"):
     try:
