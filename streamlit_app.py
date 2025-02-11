@@ -1,53 +1,32 @@
-pip install selenium webdriver-manager
 import streamlit as st
 from selenium import webdriver
-from selenium.webdriver.common.by import By
 from selenium.webdriver.chrome.service import Service
 from selenium.webdriver.chrome.options import Options
 from webdriver_manager.chrome import ChromeDriverManager
+from webdriver_manager.core.os_manager import ChromeType
 import pandas as pd
 import time
-import os
 from io import BytesIO
 import requests
-import shutil
+from zipfile import ZipFile
 
 
-def get_chromedriver_path():
-    # Attempt to locate the chromedriver path
-    possible_paths = [
-        "/usr/bin/chromedriver",              # Common Linux path
-        "/usr/local/bin/chromedriver",        # Another common Linux path
-        shutil.which("chromedriver")           # System PATH lookup
-    ]
-    for path in possible_paths:
-        if path and os.path.exists(path):
-            return path
-    return None
+@st.cache_resource
+def get_driver():
+    options = Options()
+    options.add_argument("--disable-gpu")
+    options.add_argument("--headless")
+    options.add_argument("--no-sandbox")
+    options.add_argument("--disable-dev-shm-usage")
+    options.add_argument("--window-size=1920,1080")
 
+    return webdriver.Chrome(
+        service=Service(ChromeDriverManager(chrome_type=ChromeType.CHROMIUM).install()),
+        options=options,
+    )
 
 def scrape_nber():
-    # Set up Selenium with headless option
-    chrome_options = Options()
-    chrome_options.add_argument("--headless")
-    chrome_options.add_argument("--no-sandbox")
-    chrome_options.add_argument("--disable-dev-shm-usage")
-    chrome_options.add_argument("--disable-gpu")
-    chrome_options.add_argument("--window-size=1920,1080")
-    chrome_options.add_argument("--remote-debugging-port=9222")
-
-    chromedriver_path = get_chromedriver_path()
-
-    if not chromedriver_path:
-        st.error("Chromedriver not found. Please ensure it's installed correctly.")
-        return None
-
-    try:
-        driver = webdriver.Chrome(service=Service(chromedriver_path), options=chrome_options)
-    except Exception as e:
-        st.error(f"Error initializing WebDriver: {e}")
-        return None
-
+    driver = get_driver()
     url = 'https://www.nber.org/papers?page=1&perPage=50&sortBy=public_date'
     driver.get(url)
 
@@ -61,7 +40,6 @@ def scrape_nber():
         return None
 
     data = []
-
     for paper in papers:
         try:
             title_elem = paper.find_element(By.CLASS_NAME, 'title')
@@ -87,10 +65,7 @@ def scrape_nber():
             continue
 
     driver.quit()
-
-    df = pd.DataFrame(data)
-    return df
-
+    return pd.DataFrame(data)
 
 def convert_df_to_excel(df):
     output = BytesIO()
@@ -99,12 +74,9 @@ def convert_df_to_excel(df):
     output.seek(0)
     return output
 
-
 def download_pdfs(start, end):
-    st.write(f"Starting to download PDFs...")
+    st.write("Starting to download PDFs...")
     zip_buffer = BytesIO()
-
-    from zipfile import ZipFile
 
     with ZipFile(zip_buffer, 'w') as zip_file:
         for i in range(start, end + 1):
@@ -117,7 +89,6 @@ def download_pdfs(start, end):
                 st.write(f"Failed to download: {url}")
 
     zip_buffer.seek(0)
-
     st.download_button(
         label="Download All PDFs as ZIP",
         data=zip_buffer,
@@ -127,7 +98,6 @@ def download_pdfs(start, end):
 
     st.success("All PDFs have been downloaded successfully!")
 
-
 st.title("NBER Paper Scraper and Downloader")
 if st.button("Scrape NBER Data"):
     df = scrape_nber()
@@ -135,7 +105,12 @@ if st.button("Scrape NBER Data"):
         st.success("Scraping completed successfully!")
         st.dataframe(df)
         excel_data = convert_df_to_excel(df)
-        st.download_button(label="Download Excel File", data=excel_data, file_name="nber_data.xlsx", mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
+        st.download_button(
+            label="Download Excel File", 
+            data=excel_data, 
+            file_name="nber_data.xlsx", 
+            mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+        )
     else:
         st.warning("No data scraped. Please verify the website structure.")
 
