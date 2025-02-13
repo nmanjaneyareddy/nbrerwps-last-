@@ -191,8 +191,9 @@ st.markdown(
 
 # User Rating Feature
 st.subheader("Rate This Application")
-rating = st.radio("Please rate your experience:", [1, 2, 3, 4, 5])
-if st.button("Submit Rating"):
-    st.success(f"Thank you for rating this application {rating} out of 5!")
 
-# Optionally, you can log or save the rating for future analysis
+# Horizontal star rating
+rating = st.radio("Please rate your experience:", ["⭐", "⭐⭐", "⭐⭐⭐", "⭐⭐⭐⭐", "⭐⭐⭐⭐⭐"], horizontal=True)
+if st.button("Submit Rating"):
+    st.success(f"Thank you for rating this application {rating}!")
+
