@@ -70,7 +70,6 @@ def scrape_nber_papers():
         author = author_elem.text.strip().replace('Author(s) - ', '')
 
         data.append({
-            'Inst': 'IGIDR',
             'Source': 'National Bureau of Economic Research',
             'Title': title_text,
             'Year': year,
@@ -189,3 +188,11 @@ st.markdown(
     """,
     unsafe_allow_html=True,
 )
+
+# User Rating Feature
+st.subheader("Rate This Application")
+rating = st.radio("Please rate your experience:", [1, 2, 3, 4, 5])
+if st.button("Submit Rating"):
+    st.success(f"Thank you for rating this application {rating} out of 5!")
+
+# Optionally, you can log or save the rating for future analysis
