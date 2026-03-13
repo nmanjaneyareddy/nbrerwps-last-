@@ -6,109 +6,103 @@ from PyPDF2 import PdfReader
 import pandas as pd
 
 
-from bs4 import BeautifulSoup
-from selenium import webdriver
-from selenium.webdriver.chrome.service import Service as ChromeService
-from selenium.webdriver.support.ui import WebDriverWait
-from selenium.webdriver.support import expected_conditions as EC
-from selenium.webdriver.common.by import By
-from webdriver_manager.chrome import ChromeDriverManager
+import streamlit as st
+import pandas as pd
 import time
+from io import BytesIO
 
-# Streamlit page configuration
-st.set_page_config(layout="wide")
+from selenium import webdriver
+from selenium.webdriver.common.by import By
+from selenium.webdriver.chrome.options import Options
 
-# Function to scrape website content
-def get_website_content(url):
-    driver = None
-    try:
-        options = webdriver.ChromeOptions()
-        options.add_argument('--headless')
-        options.add_argument('--disable-gpu')
-        options.add_argument('--window-size=1920,1200')
-        driver = webdriver.Chrome(service=ChromeService(ChromeDriverManager().install()), options=options)
-        driver.get(url)
-        time.sleep(5)
-        html_doc = driver.page_source
-        soup = BeautifulSoup(html_doc, "html.parser")
-        return soup
-    except Exception as e:
-        st.error(f"Error fetching website content: {e}")
-    finally:
-        if driver is not None:
-            driver.quit()
-    return None
 
-def scrape_nber_papers():
-    url = 'https://www.nber.org/papers?page=1&perPage=50&sortBy=public_date#listing-77041'
-    soup = get_website_content(url)
+st.title("NBER Working Papers Scraper")
 
-    if soup is None:
-        st.error("Failed to retrieve data from the website.")
-        return
+url = "https://www.nber.org/papers?page=1&perPage=50&sortBy=public_date#listing-77041"
 
-    results = soup.find(class_='promo-grid__promos')
-    if not results:
-        st.error("No results found on the page.")
-        return
+def scrape_nber():
 
-    job_elems = results.find_all('div', class_='digest-card')
+    chrome_options = Options()
+    chrome_options.add_argument("--headless")
+    chrome_options.add_argument("--no-sandbox")
+    chrome_options.add_argument("--disable-dev-shm-usage")
+
+    driver = webdriver.Chrome(options=chrome_options)
+
+    driver.get(url)
+
+    time.sleep(5)
+
+    papers = driver.find_elements(By.CSS_SELECTOR,"div.digest-card")
 
     data = []
-    for job_elem in job_elems:
-        title_elem = job_elem.find('div', class_='digest-card__title')
-        year_elem = job_elem.find('span', class_="digest-card__label")
-        wpno_elem = job_elem.find('a', class_="paper-card__paper_number")
-        author_elem = job_elem.find('div', class_='digest-card__items')
 
-        if None in (title_elem, year_elem, wpno_elem, author_elem):
-            continue
+    for paper in papers:
 
-        title_text = title_elem.text.strip()
-        year = year_elem.text.strip().replace('May', '')
-        wpno = wpno_elem.text.strip()
-        author = author_elem.text.strip().replace('Author(s) - ', '')
+        try:
+            title_el = paper.find_element(By.CSS_SELECTOR,".digest-card__title a")
+            title = title_el.text
+            link = title_el.get_attribute("href")
+        except:
+            title = ""
+            link = ""
+
+        try:
+            wp = paper.find_element(By.CSS_SELECTOR,".paper-card__paper_number").text
+        except:
+            wp = ""
+
+        try:
+            authors = paper.find_element(By.CSS_SELECTOR,".digest-card__items").text.replace("Author(s) -","")
+        except:
+            authors = ""
+
+        try:
+            date = paper.find_element(By.CSS_SELECTOR,".digest-card__label").text
+        except:
+            date = ""
+
+        try:
+            abstract = paper.find_element(By.CSS_SELECTOR,".digest-card__summary").text
+        except:
+            abstract = ""
 
         data.append({
-            'Source': 'National Bureau of Economic Research',
-            'Title': title_text,
-            'Year': year,
-            'WP_NO': wpno,
-            'Place': 'Cambridge',
-            'Publisher': 'NBER',
-            'Series': 'NBER Working Papers ;',
-            'wpno': f'NBERWP {wpno}',
-            'Author': author
+            "Title":title,
+            "WorkingPaper":wp,
+            "Author":authors,
+            "Date":date,
+            "Abstract":abstract,
+            "PaperURL":link,
+            "Publisher":"NBER",
+            "Place":"Cambridge"
         })
 
-    if not data:
-        st.error("No data extracted from the webpage.")
-        return
+    driver.quit()
 
-    df = pd.DataFrame(data)
+    return pd.DataFrame(data)
 
-    # Split 'Title' into 'Title1' and 'Subtitle'
-    df[['Title1', 'Subtitle']] = df['Title'].str.split(':', n=1, expand=True).fillna('')
 
-    # Drop the original 'Title' column
-    df.drop('Title', axis=1, inplace=True)
+if st.button("Scrape NBER Papers"):
 
-    # Save DataFrame to Excel
-    excel_file = "nber_papers.xlsx"
-    df.to_excel(excel_file, index=False)
+    with st.spinner("Scraping papers..."):
 
-    # Provide download link for the Excel file
-    with open(excel_file, "rb") as file:
-        st.download_button(label="Download NBER Papers Data", data=file, file_name="nber_papers.xlsx", mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
+        df = scrape_nber()
 
-def main_sidebar():
-    st.header("NBER Papers Scraper")
-    if st.button("Start Scraping"):
-        with st.spinner("Scraping data, please wait..."):
-            scrape_nber_papers()
+    st.success(f"{len(df)} papers scraped")
 
-if __name__ == "__main__":
-    main_sidebar()
+    st.dataframe(df)
+
+    excel = BytesIO()
+    df.to_excel(excel,index=False)
+    excel.seek(0)
+
+    st.download_button(
+        "Download Excel",
+        data=excel,
+        file_name="nber_working_papers.xlsx",
+        mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+    )
 
 # ------------------- download PDFs -----------------------------
 def download_pdfs_and_generate_report(start, end):
